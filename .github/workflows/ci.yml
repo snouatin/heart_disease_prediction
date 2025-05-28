@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint:
+    name: Lint Python
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install linters
+        run: pip install flake8 isort black
+      - name: Run linters
+        run: |
+          flake8 src/
+          isort --check-only src/
+          black --check src/
+
+  test:
+    name: Tests unitaires
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17.5
+        env:
+          POSTGRES_USER: mlops
+          POSTGRES_PASSWORD: mlops
+          POSTGRES_DB: patients
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run tests
+        run: pytest --maxfail=1 --disable-warnings -q
+
+  build-and-push:
+    name: Build & Push Docker Images
+    runs-on: ubuntu-latest
+    needs: [ lint, test ]
+    env:
+      REGISTRY: ghcr.io/${{ github.repository_owner }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build & Push images
+        run: |
+          docker build -t $REGISTRY/heart-simulator:latest -f docker/simulator/Dockerfile .
+          docker push $REGISTRY/heart-simulator:latest
+          docker build -t $REGISTRY/heart-predictor:latest -f docker/predictor/Dockerfile .
+          docker push $REGISTRY/heart-predictor:latest
+          docker build -t $REGISTRY/heart-archiver:latest -f docker/archiver/Dockerfile .
+          docker push $REGISTRY/heart-archiver:latest
