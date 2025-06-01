@@ -1,2 +1,8 @@
 pandas
 pytest
+kafka-python
+mlflow
+SQLAlchemy
+scikit-learn
+torch
+psycopg2-binary
