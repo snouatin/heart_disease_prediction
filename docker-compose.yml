@@ -1,0 +1,98 @@
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.9.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_log:/var/lib/zookeeper/log
+
+  kafka:
+    image: confluentinc/cp-kafka:7.9.0
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+
+  postgres:
+    image: postgres:17.5
+    container_name: postgres
+    env_file:
+      - ./db.env
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d
+
+  mlflow:
+    image: python:3.10-slim
+    container_name: mlflow
+    working_dir: /mlflow
+    volumes:
+      # Dossier local pour stocker le fichier SQLite et autres métadonnées
+      - ./mlflow/mlflow_db:/mlflow
+      # Dossier local pour stocker tous les artefacts (modèles, etc.)
+      - ./mlflow/mlflow_artifacts:/mlflow_artifacts
+    ports:
+      - "5000:5000"
+    command: >
+      /bin/sh -c '
+        pip install mlflow && \
+        mlflow server \
+          --backend-store-uri sqlite:///mlflow.db \
+          --default-artifact-root /mlflow_artifacts \
+          --host 0.0.0.0 \
+          --port 5000
+      '
+  
+  trainer:
+    image: python:3.10-slim
+    container_name: trainer
+    working_dir: /app
+    volumes:
+      - ./:/app
+      - ./mlflow/mlflow_artifacts:/mlflow_artifacts
+      - ./mlflow/mlflow_db:/mlflow
+    depends_on:
+      - mlflow
+      - postgres
+    env_file:
+      - ./trainer.env
+    command: >
+      /bin/sh -c "
+        pip install --no-cache-dir -r requirements.txt && \
+        python src/common/train.py
+      "
+
+  simulator:
+    build:
+      context: .
+      dockerfile: docker/simulator/Dockerfile
+    depends_on:
+      - kafka
+    networks:
+      - default
+
+volumes:
+  zookeeper_data:
+    driver: local
+  zookeeper_log:
+    driver: local
+  kafka_data:
+    driver: local
+  postgres_data:
+    driver: local
