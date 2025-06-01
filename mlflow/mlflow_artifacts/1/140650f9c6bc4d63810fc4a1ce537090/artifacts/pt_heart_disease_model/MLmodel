@@ -1,0 +1,22 @@
+artifact_path: pt_heart_disease_model
+flavors:
+  python_function:
+    config:
+      device: null
+    data: data
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.pytorch
+    pickle_module_name: mlflow.pytorch.pickle_module
+    python_version: 3.10.17
+  pytorch:
+    code: null
+    model_data: data
+    pytorch_version: 2.7.0+cu126
+mlflow_version: 2.22.0
+model_size_bytes: 2418445
+model_uuid: 0dd6214f914449df9e9a9dacad470d30
+prompts: null
+run_id: 140650f9c6bc4d63810fc4a1ce537090
+utc_time_created: '2025-06-01 10:31:06.619668'

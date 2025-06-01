@@ -1,0 +1,21 @@
+artifact_path: rf_heart_disease_model
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    predict_fn: predict
+    python_version: 3.10.17
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.6.1
+mlflow_version: 2.22.0
+model_size_bytes: 464061
+model_uuid: 600b73b16a624fd395ca25579d7980d3
+prompts: null
+run_id: b23328deaaf84c9aa5969c4d6bb0063f
+utc_time_created: '2025-06-01 10:34:18.522844'
