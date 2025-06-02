@@ -60,4 +60,4 @@ if __name__ == '__main__':
         producer.send(TOPIC, value=patient)
         producer.flush()
         print(f"Sent: {patient}")
-        time.sleep(2)
+        time.sleep(20)

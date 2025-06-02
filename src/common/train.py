@@ -6,6 +6,7 @@ from sklearn.metrics import accuracy_score, roc_auc_score
 import mlflow
 import mlflow.sklearn
 import mlflow.pytorch
+from mlflow.tracking import MlflowClient
 from sqlalchemy import create_engine
 import torch
 import torch.nn as nn
@@ -162,6 +163,9 @@ def train_model():
         # 6. Sauvegarde du modèle dans MLflow
         mlflow.sklearn.log_model(model, "rf_heart_disease_model")
 
+        run_id = mlflow.active_run().info.run_id
+        model_name = "rf_heart_disease_model"
+
         print(f"random Forest: accuracy={acc:.4f}, ROC_AUC={auc:.4f}")
 
     # 4. Enregistrement dans MLflow : PyTorch
@@ -171,7 +175,25 @@ def train_model():
             mlflow.log_param(f"pt_{k}", v)
 
         pt_acc, pt_auc = train_pytorch_model(X_train, y_train, X_test, y_test, pt_params)
+
+        if acc < pt_acc:
+            run_id = mlflow.active_run().info.run_id
+            model_name = "pt_heart_disease_model"
+
         print(f"PyTorchNN: accuracy={pt_acc:.4f}, ROC_AUC={pt_auc:.4f}")
 
+    model_uri = f"runs:/{run_id}/{model_name}"
+    
+    # 5. Enregistre dans le Registry sous le nom "rf_heart_disease_model"
+    client = MlflowClient()
+    client.create_registered_model(model_name)
+
+    # 6. Crée une version 1 du modèle à partir du run actuel
+    mv = client.create_model_version(
+        name=model_name,
+        source=model_uri,
+        run_id=run_id
+    )
+    
 if __name__ == "__main__":
     train_model()
