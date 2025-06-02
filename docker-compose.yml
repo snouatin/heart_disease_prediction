@@ -105,6 +105,21 @@ services:
     networks:
       - default
 
+  archiver:
+    build:
+      context: .
+      dockerfile: docker/archiver/Dockerfile
+    container_name: archiver
+    depends_on:
+      - kafka
+      - postgres
+    env_file:
+      - ./archiver.env
+    ports:
+      - "8500:8500"
+    networks:
+      - default
+
 volumes:
   zookeeper_data:
     driver: local
